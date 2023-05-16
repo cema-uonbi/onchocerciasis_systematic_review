@@ -1,0 +1,454 @@
+---
+title: "oncho_systematicReview"
+output:
+  html_document: default
+  pdf_document: default
+date: "2022-06-20"
+---
+
+
+
+```{r, include=F}
+library(tidyverse)
+
+onchocerciasis<- read_csv("extracted_data_final_20230130.csv") %>%
+  janitor::clean_names()%>%
+  mutate(x1=as.numeric(x1))%>%
+  filter(!is.na(x1))%>%
+  mutate(baseline_mf=str_remove(baseline_microfilarial_prevalence, "%"))%>%
+  mutate(baseline_mf=trimws(baseline_mf))%>%
+  mutate(baseline_mf=ifelse(subnational_area%in%c("Issia", "Biankouma"), NA, baseline_mf))%>%
+  mutate(baseline_mf=recode(baseline_mf, "<90"="90", ">-60"="60", ">40"="40", ">5"="5", ">60"="60", "11-80"="80", "11.88 (19/160)"="11.88", "13-64"="64", "32-63"="63", "37.62 in male adults"="37.62", "4.4-87"="87", "53.1 in adults"="53.1", "53.2 for 10 years and above; 15.6% for 10 years and below"="53.2", "56.1 in adults"="56.1", "60-80"="80", "62.2 for 10 years and above; 3.1% for 10 years and below"="62.2", "62.2 in adults"="62.2", "63.9 in adults, 12.7% in children"="63.9", "68 for 10 years and above; 6.9% for 10 years and below"="68", "69.2 for 10 years and above; 26.7% for 10 years and below"="69.2", "69.2 in adults"="69.2", "69.3 (95% CI 60.2 -78.0) - in 1975; 9.8% (95% CI 2.2% - 17.3% in 1998 when CDTI began"="69.3", "70.7 for 10 years and above; 8% for 10 years and below"="70.7", "72.1 in adults"="72.1", "72.1for10 years and above"="72.1", "76.7 in adults"="76.7", "78.3 for 10 years and above"="78.3", "80 for 10 years and above; 40.6% for 10 years and below"="80", "86.0 for 10 years and above; 50.6% for 10 years and below"="86.0", "87.8 in adults, 65% in children"="87.8", "98.9 for 10 years and above; 69.6% for 10 years and below"="98.9", "53-89"="89"))%>%
+  mutate(baseline_mf=str_remove(baseline_mf, "in male adults" ))%>%
+  mutate(baseline_mf=as.numeric(baseline_mf))%>%
+  mutate(baseline_cmfl=str_remove(baseline_community_microfialrial_load, "mf/s"))%>%
+  mutate(baseline_cmfl=trimws(baseline_cmfl))%>%
+  mutate(baseline_cmfl=ifelse(subnational_area%in%c("Issia", "Biankouma"), NA, baseline_cmfl))%>%
+  mutate(baseline_cmfl=recode(baseline_cmfl, "<10"="10", "<23"="23", ">70"="70", "0-40"="40", "0.3-32"="32", "1.3-69"="69","1.5 s"="1.5", "0.2-21.6"="21.6", "12.0-48.1"="48.1", "13.3-21.0"="21", "25 among adults 20 years or more"="25", "28.3s"="28.3", "32.32%"="32.32", "38.60%"="38.60", "5-80 s"="80", "63 among adults 20 years or more"="63", "9-70"="70", "10.2-21.6"="21.6"))%>%
+  mutate(baseline_cmfl=as.numeric(baseline_cmfl))%>%
+  mutate(baseline_nodular=str_remove(baseline_nodule_prevalence,"(maxm.)"))%>%
+  mutate(baseline_nodular=str_remove(baseline_nodular,"[%,),(]"))%>%
+  mutate(baseline_nodular=str_remove(baseline_nodular,"[)]"))%>%
+  mutate(baseline_nodular=trimws(baseline_nodular))%>%
+  mutate(baseline_nodular=recode(baseline_nodular, ">20 in adult males"="20", ">40"="40", "0-18%"="18", "14-44%"="44", "21.8 (adult population"="21.8", "23.5 (adult population"="23.5", "24.8 (adult population"="24.8", "27.2 for 10 years and above; 0% for 10 years and below"="27.2", "33 for 10 years and above; 0% for 10 years and below"="33", "34.3 (adult population"="34.3", "36 for 10 years and above; 0% for 10 years and below"="36", "40 in adults"="40", "41.8 in male adults"="41.8", "51.7 in adults"="51.7", "55 for 10 years and above; 0% for 10 years and below"="55", "59.1 for 10 years and above; 0% for 10 years and below"="59.1", "59.2 in adults"="59.2", "60.2 in adults"="60.2", "61.5 in adults"="61.5", "61.8 for 10 years and above; 0% for 10 years and below"="61.8", "61.8for10 years and above"="61.8", "70.8 in adults"="70.8", "77.3 for 10 years and above"="77.3", "80 for 10 years and above; 0% for 10 years and below"="80", "80.3 in adults"="80.3", "82 in adults"="82", "86.8 for 10 years and above; 51.8% for 10 years and below"="86.8", "89.7 in adults"="89.7"))%>%
+  mutate(baseline_nodular=as.numeric(baseline_nodular))%>%
+  mutate(MDA_years=recode(number_of_years_of_ivermectin_control, ">20"="20", "10-12"="12", "14-15"="15", "15 or more"="15"))%>%
+  mutate(MDA_years=as.numeric(MDA_years))%>%
+  mutate(nodular_prev=str_remove(nodular_prevalence, "%"))%>%
+  mutate(nodular_prev=trimws(nodular_prev))%>%
+  mutate(nodular_prev=recode(nodular_prev, "0 (UCL- 0.75%)"="0", "0 with microscope, 0.2% with PCR"="0.2", "0.7 (4/592)"="0.7", "1.4 in adults"="1.4", "1.5 in adults"="1.5", "11 in adults"="11", "11.4 above 10 years; 0% below 10 years"="11.4", "11.7 above 10 years; 0% below 10 years"="11.7", "11.9 in adults"="11.9", "13 in adults"="13", "16.0 above 10 years; 0% below 10 years"="16", "16.4 in adults"="16.4", "16.6 in adults"="16.6", "18 in adults"="18", "19.5 above 10 years; 0% below 10 years"="19.5", "3.4 above 10 years; 0% below 10 years"="3.4", "3.5 (84/2377)"="3.5", "3.6 in adults"="3.6", "4 (0.3%-8%)"="4", "43.4 in adults"="43.4", "5.2 above 10 years; 0% below 10 years"="5.2", "5.3 in adults"="5.3", "6.7 above 10 years; 0% below 10 years"="6.7", "6.9 (30/438)"="6.9", "7.7 in adults"="7.7", "7.9 in adults"="7.9", "8.9 above 10 years; 0% below 10 years"="8.9", "9.0 above 10 years; 0% below 10 years"="9.0"))%>%
+  mutate(nodular_prev=as.numeric(nodular_prev))%>%
+  mutate(mf_prevalence=str_remove(microfilarial_prevalence, "%"))%>%
+  mutate(mf_prevalence=recode(mf_prevalence, "<1"="1", "<10"="10", "<3"="3", "<5"="5", "<9"="9", "0 (95% CI 0%-0.1%)"="0", "0 (95% CI 0%-0.24%)"="0", "0 (both microscope and PCR)"="0", "0 using microscope, 0.6% using PCR"="0.6", "0-47"="47", "0.0 in adults, 0% in children"="0", "0.07 (95% CI 0.01% -0.2%)"="0.07", "0.5 in adults"="0.5", "0.72 (0.19%-1.26%)"="0.72", "1.5 above 10 years; 0% below 10 years"="1.5", "1.6 above 10 years; 0% below 10 years"="1.6", "11.1 in adults, 6.9% in children"="11.1", "11.5 (78/680)"="11.5", "14 in adults, 4.3% in children"="14", "17.3 (CI: 16.73-18.34%)"="17.3", "19.2 above 10 years; 7.3% below 10 years"="19.2", "2.0 above 10 years; 0% below 10 years"="2", "2.6 above 10 years; 0% below 10 years"="2.6", "21.4 in adults, 15.8% in children"="21.4", "22.6 above 10 years; 6% below 10 years"="22.6", "23.2 in adults, 14% in children"="23.2", "27.3 in adults, 29.3% in children"="27.3", "3.0 in adults, 4.2% in children"="3", "3.6 in adults, 1.4% in children"="3.6", "4.9 above 10 years; 0% below 10 years"="4.9", "4.9 in adults, 0% in children"="4.9", "5.2 in adults, 0.6% in children"="5.2", "5.9 (4.6-7.1)"="5.9", "59.6 in adults, 65.6% in children"="65.6", "6.1 above 10 years; 3.4% below 10 years"="6.1", "6.9 above 10 years; 1.9% below 10 years"="6.9", "7.6 in adults"="7.6", "8.3 (mean value per village); \nMax: 21.9%"="8.3", "9.7 above 10 years; 8.1% below 10 years"="9.7", "Adults: 0.1; Children: 0%"="0.1", "Exact values not given; \nAs per the figure, these are almost 0 for most of the villages."="0.1", "Skin snip - 0; Ov-16 ELISA - 7.9%"="0"))%>%
+  mutate(cmfl=str_remove(community_microfialrial_load, "mf/s"))%>%
+  mutate(cmfl=trimws(cmfl))%>%
+  mutate(cmfl=recode(cmfl, "Exact values not given; \nAs per the figure, these are almost 0% by the end of the treatment duration."="0.1", "<0.2"="0.2", "~0"="0", "0 mf/mg of skin snip"="0", "0-0.13"="0", "0.07 (0.00-0.19)"="0.07", "0.49 s"="0.49", "0.4s"="0.4", "2.06 s"="2.06"))%>%
+  mutate(cmfl=as.numeric(cmfl))%>%
+  mutate(treatment_frequency=recode(treatment_frequency,"-"="Annual", "Yearly"="Annual", "annual"="Annual", "bi-annual"="Bi-annual", "Bi-annually"="Bi-annual", "biannual"="Bi-annual"))%>%
+  mutate(ecological_features=recode(ecological_features, "dense humid forest"="Forest", "Dry savanna"="Savanna", "Forest & savannah"="Forest-savannah", "forest-savanna"="Forest-savannah", "Forest&Savannah"="Forest-savannah", "Hilly & densely forested"="Forest", "Pre-Forest"="Forest", "Savannah grassland"="Savannah", "savannah and forest"="Forest-savannah", "savannah with patchy forest galleries"="Forest-savannah", "desert"="Sudan-savanna", "forest"="Forest", "forest-savannah"="Forest-savannah", "rain forest"="Rain-forest", "Savanna"="Savannah", "savannah"="Savannah"))%>%
+  mutate(ecological_features=ifelse(ecological_features%in%c("NR", "-"), NA, ecological_features))%>%
+  mutate(ecological_features=recode(ecological_features, "Savanna"="Savannah", "River basins"="Savannah"))%>%
+   mutate(vector_control_yes_no=ifelse(is.na(vector_control_yes_no), "No", vector_control_yes_no))%>%
+  mutate(treatment_frequency=recode(treatment_frequency,"-"="Annual", "Yearly"="Annual", "annual"="Annual", "bi-annual"="Bi-annual", "Bi-annually"="Bi-annual", "biannual"="Bi-annual"))%>%
+  mutate(treatment_frequency=ifelse(is.na(treatment_frequency), "PTS", treatment_frequency))%>%
+  mutate(therapeutic_coverage1=ifelse(therapeutic_coverage%in%c("<=65%", ">=55%*", ">65%","20-80%","20%","41-92%", "42-76%","45-90%","50-75%","52.80%","53.20%","60-80%","60%", "61-100%","61%","64%","65-85%","66%","67%","68-69%","68%","69%","70-80%", "72%", "74%", "75.00%", "75%","76%","77%","79","79%" ), "<80%",ifelse(therapeutic_coverage%in%c(">80%", "98%", "99.50%", "97% in adults, 79% in children", "98.00%", "97.00%", "96.00%", "95%", "93.00%", "92.6", "92%", "92.00%", "91%", "90%", "90.00%", "89%-100%", "89%", "88%", "88.00%", "87%", "86%", "85%", "84%", "83%", "82%", "82.90%", "81%","80%", ">90%"), ">=80%", therapeutic_coverage)))%>%
+  mutate(therapeutic_coverage1=ifelse(therapeutic_coverage1%in%c("-", "NR"), NA, therapeutic_coverage1))%>%
+  mutate(proportion_compliance1=str_remove(proportion_compliance, "%"))%>%
+  mutate(proportion_compliance1=trimws(proportion_compliance1))%>%
+  mutate(proportion_compliance1=recode(proportion_compliance1, "40-54%"="54", "5.9 of adults had participanted in at least 75% of rounds"="5.9", "71.2 (95% CI: 61.7-79.2%)"="71.2"))%>%
+  mutate(proportion_compliance1=as.numeric(proportion_compliance1))%>%
+  mutate(systemic_noncomp=str_remove(proportion_not_adherening, "%"))%>%
+  mutate(systemic_noncomp=trimws(systemic_noncomp))%>%
+  mutate(systemic_noncomp=recode(systemic_noncomp, "<1"="1"))%>%
+  mutate(systemic_noncomp=as.numeric(systemic_noncomp))%>%
+  mutate(ov16=ifelse(ov16_seropositivity_in_children%in%c("0-0.032%", "0-0.049%", "0.0% (95% CI: 0.0-0.16) (no. of positive/N = 0/3079)", "0.019% (UCL 0.074)", "0.03%", "0.031% (UCL 0.093%)", "0% (UCL-0.03%)", "0% (UCL 0.06%)",  "0% (0/3316)", "0.11% upto children 14 years (UCL-0.128%), 0% UCL0.089% in children <10 years, though included under 5 years", "0.031% (UCL 0.093%) (1/3182)", "0.15% (CI 0.02% -0.28%), but negative for O-150 PCR skin snip", "0.09% but negative for confirmatory test", "0.06% (UCL 0.11%), 0% for PCR", "0.032% (UCL 0.096%) (1/3080)", "0%"), "<0.1%",ifelse(ov16_seropositivity_in_children%in%c("children: 14.9% (13/87)", "9.6% (145/1518)", "38.30%", "2.9% (21/719)", "2.5% (7/279)", "14.9% (7.3%-22.6%);All ages: 34% (30.3-37.7)", "0.1% (UCL 0.38%)", "0.47% (2/428)", "0.04% (95% CI = 0.01-0.25%)", "0.27% (95% CI = 0.13-0.60%)" ), ">0.1%", ifelse(ov16_seropositivity_in_children%in%c("0% (0/124)","0% (0/52)","-" ), NA, ov16_seropositivity_in_children ))))%>%
+  mutate(fly_infectivity=ifelse(fly_infectivity_rate%in%c("0 (UCL 0.02%)", "0 (UCL 0.03%)", "0.00%", "0.01 (UCL 0.02%)", "0%", "None", "No flies" ), "<0.05%", ifelse(fly_infectivity_rate%in%c("0.02 (UCL (0.07%)", "0.18%", "0.19%", "0.30 UCL in phase 1,0.23 in phase 2", "0.34 UCL in phase 1, 0.46 in phase 2", "0.454", "0.47 UCL in phase 1, 0.18 in phase 2", "0.50%", "0.57% (UCL 0.74%)", "0.6% (UCL (1.347)", "0.80%", "0% (95 CI 0%-0.16%)", "0% (UCL 0.3%", "0% (UCL 2.3%)", "0% (UCL- 0.6%)", "0% (UCL- 0.9%)", "0% (UCL- 2.6%)", "0% (UCL-0.096)", "1.40%", "1%", "13.70%", "2.8% in 2009-2010", "2.80%", "4.50%", "4.7", "7.4% UCL", "8.70%", "8% of blackfly pools were positive (18/223)"), ">0.05%",  fly_infectivity_rate)))%>%
+  mutate(mda_stopped=ifelse(mda_halted%in%c("Yes", "Yes-PES", "Yes-PTS"), "Yes", "No"))%>%
+  mutate(vector_species1=ifelse(vector_species%in%c("Simulium damnosum s.l, simulium damnosum s.s, simulium sirbanum", "Simulium damnosum", "Simulium damnosum s.l, simulium damnosum s.s, simulium sirbanum, Simulium soubrense beffa form, simulium squamosum", "Simulium damnosum s.l, simulium damnosum s.s, simulium sirbanum, Simulium soubrense beffa form, simulium squamosum, simulium yahense", "Simulium damnosum s.l, simulium sirbanum", "Simulium damnosum s.l, Simulium sirbanum", "Simulium damnosum s.l, Simulium squamosum, Simulium sirbanum, Simulium soubrense, Simulium sanctipauli", "Simulium damnosum s.l; Simulium dieguernse, Simulium Sirbanum", "Simulium damnosum s.l.","Simulium damnosum s.s, Simulium Sirbanum", "Simulium damnosum s.s, Simulium squamosum A and C","Simulium damnosum s.s(dorminant), Simulium Sirbanu, simulium squamosum", "Simulium damnosum sensu stricto","Simulium sanctipauli Pra Form, Simulium yahense","simulium sirbanum","Simulium sirbanum","Simulium sirbanum (predorminant), Simulium damnosum s.s, Simulium dieguerense, Simulium squamosum","Simulium sirbanum, simulium damnosium, Simulium squamosum, Simulium yahense", "Simulium sirbanum, Simulium damnosium, Simulium squamosum, Simulium yahense", "Simulium sirbanum, Simulium damnosum s.s", "Simulium sirbanum, Simulium damnosum s.s, Simulium dieguerense", "Simulium squamosum", "Simulium squamosum sensu stricto", "Simulium yahense"), "Simulium damnosum s.l", ifelse(vector_species%in%c("-","NR"), NA, ifelse(vector_species%in%c("Simulium damnosum s.l, Simulium neavei"), "Simulium damnosum s.l & Simulium neavei",ifelse(vector_species%in%c("Simulium neavei, Simulium ardesi", "Simulium damnosum s.l, Simulium neavei, Simulium vorax, Simulium adersi, Simulium hargreavesi, Simulium hirsutum, Simulium mcmahoni, Simulium rotundum, Simulium nyasalandicum"),"Simulium neavei", vector_species ) ))))%>%
+  mutate(mda_halted=ifelse(author%in%"Zarroug et al" & subnational_area%in%"Abu Hamed focus", "Yes-PTS", mda_halted))%>%
+  mutate(baseline_atp=ifelse(baseline_annual_transmission_potential%in%c("-", "NR", "(Monthly values)\n418"), NA, baseline_annual_transmission_potential))%>%
+  mutate(baseline_atp=recode(baseline_atp, "<1000"="1000", "89-1930"="1930"))%>%
+  mutate(baseline_abr=recode(baseline_vector_biting_rate, "0 - >80000"="80000","10,000"="10000", "24250-47450"="47450", "3000-40000"="40000","7430-26400"="26400", "Monthly values)10248"="10248" ))%>%
+  mutate(baseline_abr=ifelse(baseline_abr%in%c("NR", "-"), NA, baseline_abr))%>%
+  mutate_at(vars(baseline_abr, baseline_atp), as.numeric)%>%
+  mutate(atp1=recode(atp, ">293"="293", "0-120"="120", "MTP-299.3"="299.3", "MTP-731"="731", "MTP-810"="810"))%>%
+  mutate(abr1=recode(abr, "200-500"="500", "MBR-12102"="12102", "MBR-18522"="18522", "MBR-39547"="39547"))%>%
+  mutate(no_pos=recode(no_of_positive_no_of_people_tested_for_prevalence, "Adults: 1/807; children: 0/106"="1/913", "Apr-87"="4/1987", "Feb-12"="2/2012", "Jul-43"="7/1943", "Mar-05"="3/2005", "Mar-14"="03/2014", "Mar-71"="03/1971"))%>%
+  mutate(no_pos=ifelse(no_pos%in%c("NR", "-"), NA, no_pos))
+  
+  
+
+epi_transmission <- onchocerciasis%>%
+  dplyr::select(x1,MDA_years, baseline_mf, baseline_cmfl, baseline_nodular, nodular_prev, mf_prevalence,cmfl, treatment_frequency, mda_of_ivermectin, vector_control_yes_no,ov16,subnational_area, fly_infectivity, mda_stopped)%>%
+  mutate(vector_control_yes_no=ifelse(is.na(vector_control_yes_no), "No", vector_control_yes_no))%>%
+  mutate(treatment_frequency=recode(treatment_frequency,"-"="Annual", "Yearly"="Annual", "annual"="Annual", "bi-annual"="Bi-annual", "Bi-annually"="Bi-annual", "biannual"="Bi-annual"))%>%
+ mutate(status=ifelse(ov16%in%"<0.1%" & fly_infectivity%in%"<0.05%", "Elimination of transmission", ifelse(mda_stopped%in%"Yes", "Elimination of transmission", "Ongoing transmission")))%>%
+  mutate(status=ifelse(subnational_area%in%"Bioko Island" & MDA_years==19 & mda_stopped%in%"No", "Ongoing transmission", status))%>%
+  mutate(mf_prevalence=as.numeric(mf_prevalence))%>%
+  mutate(status=ifelse(mf_prevalence<1.4 & status%in%"Ongoing transmission", "Close to elimination", status))%>%
+  mutate(status=ifelse(is.na(status), "Ongoing transmission", status))%>%
+  mutate(x2=seq(1,231))%>%
+  select(-c(ov16, fly_infectivity, mda_stopped, subnational_area))%>%
+  distinct()%>%
+ # mutate(stat)
+  pivot_longer(cols=c(baseline_mf, baseline_cmfl, baseline_nodular, nodular_prev, mf_prevalence,cmfl), names_to="study_period", values_to="value")%>%
+  mutate(study_year1=ifelse(study_period%in%c("baseline_cmfl", "baseline_nodular", "baseline_mf"), "Baseline", "Study area"))%>%
+  mutate(study_period=recode(study_period, "baseline_mf"="mf prevalence", "baseline_cmfl"="CMFL", "baseline_nodular"="Nodule prevalence", "nodular_prev"="Nodule prevalence", "mf_prevalence"="mf prevalence", "cmfl"="CMFL"))%>%
+  mutate(MDA_years=ifelse(study_year1%in%"Baseline", 0, MDA_years))%>%
+  mutate(MDA_years=ifelse(MDA_years==9,10,MDA_years))%>%
+  mutate(vector_control=ifelse(vector_control_yes_no%in%c("Yes", "Yes (APOC)", "Yes (OCP)"), "With vector control", "Without vector control")) %>%
+  group_by(study_period, study_year1, status, vector_control)%>%
+  mutate(mean_value=mean(value, na.rm=T))%>%
+  mutate(MDA_years1=mean(MDA_years, na.rm=T))%>%
+  ungroup()%>%
+  mutate(hypomin= ifelse(study_period%in%c("mf prevalence", "Nodule prevalence") , 0, NA)) %>%
+  mutate(hypomax=ifelse(study_period%in%"mf prevalence", 39, ifelse(study_period%in%"Nodule prevalence", 19, NA)))%>%
+  mutate(mesomin=ifelse(study_period%in%"mf prevalence", 40, ifelse(study_period%in%"Nodule prevalence", 20, NA))) %>%
+  mutate(mesomax=ifelse(study_period%in%"mf prevalence", 59, ifelse(study_period%in%"Nodule prevalence", 39, NA))) %>%
+  mutate(hypermin=ifelse(study_period%in%"mf prevalence", 60, ifelse(study_period%in%"Nodule prevalence", 40, NA))) %>%
+  mutate(hypermax=ifelse(study_period%in%"mf prevalence", 79, ifelse(study_period%in%"Nodule prevalence", 100, NA))) %>%
+  mutate(holomin=ifelse(study_period%in%"mf prevalence", 80, NA)) %>%
+  mutate(holomax=ifelse(study_period%in%"mf prevalence", 100, NA))
+  
+  
+
+
+epi_transmission$status <- fct_relevel(epi_transmission$status, "Elimination of transmission", "Close to elimination", "Ongoing transmission")
+
+epi_transmission$study_period <- recode(epi_transmission$study_period, "mf prevalence"="Microfilarial prevalence")
+epi_transmission$study_period <- fct_relevel(epi_transmission$study_period, "Microfilarial prevalence", "Nodule prevalence", "CMFL")
+
+epi<-ggplot(epi_transmission )+geom_rect(aes(xmin=0, ymin=hypomin, ymax=hypomax, xmax=Inf,alpha=0.6), fill="#ffffe5", show.legend = F)+geom_rect(aes(xmin=0, ymin=mesomin, ymax=mesomax, xmax=Inf,alpha=0.6), fill="#fff7bc", show.legend = F)+geom_rect(aes(xmin=0, ymin=hypermin, ymax=hypermax, xmax=Inf, alpha=0.6), fill="#fee391", show.legend = F)+geom_rect(aes(xmin=0, ymin=holomin, ymax=holomax, xmax=Inf,alpha=0.6), fill="#fec44f", show.legend=F)+geom_line(aes(x=MDA_years,y=value, group=x2,  alpha=0.6), color="grey50", show.legend = F )+geom_point(aes(x=MDA_years,y=value, group=x2,  alpha=0.6 ),color="grey50", show.legend = F)+geom_line(aes(MDA_years1, y=mean_value), size=1, color="#b2182b")+geom_point(aes(MDA_years1, y=mean_value), size=1, color="#b2182b")+facet_grid(study_period~status+vector_control)+theme_bw()+labs(x="Years of ivermectin treatment", y="Mf per skin snip                                             Prevalence(%)          ")+theme(text=element_text(size=14, face = "bold"))+ theme(strip.background =element_rect(fill=NA))
+
+#ggsave("epi_trend.png",epi, width=16, height=8)
+
+ 
+# meta analysis
+meta_data <- onchocerciasis %>%
+  dplyr::select(x1, author,country_of_focus, subnational_area, ecological_features, vector_species1,year_of_publication,
+         number_of_years_of_ivermectin_control, number_of_years_of_vector_control,
+         treatment_frequency, years_biannual, years_over80, baseline_mf, baseline_cmfl,baseline_atp, baseline_abr, atp1, abr1,
+         baseline_nodular, MDA_years, nodular_prev, mf_prevalence, cmfl, therapeutic_coverage1, proportion_compliance1, systemic_noncomp, ov16, fly_infectivity,mda_halted,
+         mda_stopped, population_sample_size, co_endemicity, no_pos, vector_control_yes_no, ocp)%>%
+  #filter(!(mda_halted%in%c("Yes-PTS", "Yes-PES")))%>%
+  mutate(sample_size=recode(population_sample_size, "1041 adults"="1041", "17890 (all 3), 41680 flies"="17890", "17890 (all 3), 47120 flies"="17890", "2186 children;1867 individuals aged 3-78 for the all-age serosurveys"="4053", "2270 children;1867 individuals aged 3-78 for the all-age serosurveys"="4137", "2703 children, 2828 adults"="5531", "3080 children 5-9.5 years; 19056 flies"="3080", "3182 children 5-9.5 years; 19056 flies"="3182", "3246 children"="3246", "3308 children"="3308", "388 (311adults >=20 years & 77children 5-19 years)"="388", "393 people <5 years"="393", "3931;9148 flies"="3931", "442a & 3051c"="3493", "513 adults, 3011 children"="3524", "5266 children;19191 black flies"="5266", "5271,34200flies"="5271", "599 (467adukts & 132children 5-19 years)"="599", "6072;27,538 flies"="6072", "607adults & 145children"="752", "668 adults, 3316 children"="3984", "6756 children & 536 adults & 17537 flies"="7292", "70 humans, 30 adult cattle"="70", "739adults & 4451 children"="5190", "761; 637a & 124c"="761", "995; 697a & 298c"="995"))%>%
+  mutate(sample_size=as.numeric(sample_size))%>%
+  mutate(baseline_mf1=ifelse(baseline_mf< 40, "Hypoendemic", ifelse(baseline_mf>39 &baseline_mf <60, "Meso-endemic", ifelse(baseline_mf>59 & baseline_mf <80, "Hyperendemic", ifelse(baseline_mf>79 , "Holoendemic", baseline_mf)))))%>%
+  mutate(baseline_nod1=ifelse(baseline_nodular< 20, "Hypoendemic", ifelse(baseline_nodular>19 &baseline_nodular <40, "Meso-endemic", ifelse(baseline_nodular>39, "Hyperendemic", baseline_nodular))))%>%
+  mutate(baseline_end=ifelse(is.na(baseline_mf1), baseline_nod1, baseline_mf1))%>%
+  mutate(MDA_years=ifelse(MDA_years==9, 10,MDA_years))%>%
+  mutate(status=ifelse(ov16%in%"<0.1%" & fly_infectivity%in%"<0.05%", "Elimination of transmission", ifelse(mda_stopped%in%"Yes", "Elimination of transmission", "Ongoing transmission")))%>%
+  mutate(status=ifelse(subnational_area%in%"Bioko Island" & MDA_years==19 & mda_stopped%in%"No", "Ongoing transmission", status))%>%
+  mutate(status=ifelse(mf_prevalence<1.4 & status%in%"Ongoing transmission", "Close to elimination", status))%>%
+  mutate(status=ifelse(is.na(status), "Ongoing transmission", status))%>%
+  mutate(status1=ifelse(status%in%"Elimination of transmission", "Yes", "No"))%>%
+  separate(no_pos, c("tpos", "tneg"), sep="/") %>%
+  mutate(systemic_noncomp=ifelse(systemic_noncomp%in%85, NA, ifelse(systemic_noncomp==50.4, 40.5, systemic_noncomp))) %>%
+  mutate(treatment_frequency=recode(treatment_frequency, "PTS"="Annual")) %>%
+  mutate(status=ifelse(subnational_area%in%c("Itwara focus", "	
+Wadelai focus"), "Elimination of transmission", status))
+
+meta_analysis_data <- meta_data %>%
+  mutate(vector_control_yes_no=ifelse(author%in%"Dolo et al", "No", vector_control_yes_no)) %>%
+  mutate(author=ifelse(author%in%"Brosboom et al", "Borsboom et al", author))
+  
+```
+
+
+```{r, meta_analysis, include=F}
+library(pacman)
+p_load(esc)
+p_load(meta)
+p_load(dmetar)
+
+p_load(metafor)
+
+meta_analysis_data$mf_prevalence<- as.numeric(meta_analysis_data$mf_prevalence)
+meta_analysis_data$tneg <- as.numeric(meta_analysis_data$tneg)
+meta_analysis_data$tpos<- ifelse(meta_analysis_data$tpos%in%"x",round(meta_analysis_data$mf_prevalence*meta_analysis_data$tneg/100), meta_analysis_data$tpos ) 
+
+meta_analysis_data$tpos <- ifelse(is.na(meta_analysis_data$tpos),round(meta_analysis_data$mf_prevalence*meta_analysis_data$tneg/100), meta_analysis_data$tpos )
+meta_analysis_data$tpos <- ifelse(is.na(meta_analysis_data$tpos),round(meta_analysis_data$mf_prevalence*meta_analysis_data$sample_size/100), meta_analysis_data$tpos )
+meta_analysis_data$tneg <- ifelse(is.na(meta_analysis_data$tneg), meta_analysis_data$sample_size, meta_analysis_data$tneg)
+
+meta_analysis_data$tpos <- ifelse(meta_analysis_data$status%in%"Elimination of transmission" & is.na(meta_analysis_data$tpos), 0, meta_analysis_data$tpos)
+
+
+table_1 <- onchocerciasis%>%
+  dplyr::select(author, year_of_publication, country_of_focus, subnational_area,baseline_microfilarial_prevalence,number_of_years_of_ivermectin_control, treatment_frequency,year_of_change_of_frequency,years_biannual, therapeutic_coverage, therapeutic_coverage1,years_over80, vector_species1, vector_control_yes_no, number_of_years_of_vector_control, fly_infectivity_rate, mda_halted)%>%
+  mutate(vector_control_yes_no=ifelse(author%in%"Dolo et al", "No", vector_control_yes_no))
+  
+
+meta_data2 <- meta_analysis_data%>%
+  mutate(year_of_publication=ifelse(subnational_area%in%"Kashoya-Kitomi focus", 2017, year_of_publication))%>%
+  mutate(author=ifelse(subnational_area%in%"Abu Hamed focus", "Zarroug et al", author)) %>%
+  mutate(subnational_area1=recode(subnational_area, "Abu Hamed focus"="Abu Hamed", "Adwuman village"="Adwuman", "Adwuman village"="Adwuman", "Akropong village"="Akropong", "Amoafo village"="Amoafo", "Aninegeye community"="Aninegeye", "Asaman village"="Asaman", "Ashanti, Brong Ahafo, Central, Eastern, Greater Accra, Northern, Upper East, Upper West, Volta, Western"="Multiple foci", "Asma Camp village"="Asma Camp", "Awisam village"="Awisam", "Badowa village"="Badowa", "Bafang District"="Bafang", "Bafang health district"="Bafang", "Bafia health district"="Bafia", "Bafia health districts"="Bafia", "Bafing focus"="Bafing", "Bakoye focus"="River Bakoye", "Bandja District"="Bandja", "Bandja Health district"="Bandja", "Bandjoun health district"="Bandjoun", "Bangangte District"="Bangangte", "Bangangte health district"="Bangangte", "Bioko island"="Bioko Island", "Buabenso village"="Buabenso", "Buabin village"="Buabin", "Faleme focus"="River Faleme", "Foso village"="Foso", "Foumbot District"="Foumbot", "Foumbot health district"="Foumbot", "Galabat focus"="Galabat", "Galadimawa village"="Galadimawa", "Itwara focus"="Itwara", "Kachia Local Government Area"="Kachia", "Kasese District"="Kasese", "Kashoya-Kitomi focus"="Kashoya-Kitomi", "Kekem District"="Kekem", "Kekem health district"="Kekem", "Kisoro District"="Kisoro", "Kyekyewere village"="Kyekyewere", "Mahenge focus"="Mahenge", "Manyu River Basin"="Manyu", "Massangam health district"="Massangam", "Matema focus"="Matema", "Mbale District"="Mbale", "Melong Health District"="Melong", "Meme Drainage Basins"="Meme", "Milo and Sankarani"="Milo & Sankarani", "Moyo District"="Moyo", "Mungo Drainage Basin"="Mungo", "Ndikinimeki Health District"="Ndikinimeki", "Nebbi District"="Nebbi", "Nyaduom village"="Nyaduom", "Obongi focus"="Obongi", "Ogun State"="Ogun", "Plateau & Nasarawa States"="Plateau & Nasarawa", "Plateau Nassarawa"="Plateau & Nasarawa", "Rey-Bouba health district"="Rey-Bouba", "River Gambia, Mako focus"="River Gambia, Mako", "Tchollire health district"="Tchollire", "Tienfala focus"="Tienfala", "Titira and Kouporgou"="Titira & Kouporgou", "Toll bridge village"="Toll bridge", "Tombel health district (Southwest region)"="Tombel", "Tukuyu focus"="Tukuyu", "Vina du Nord River valley"="Vina du Nord River", "Vina Valley focus"="Vina Valley", "Wadelai focus"="Wadelai", "Yabassi health districts"="Yabassi", "Zion Camp village"="Zion Camp"))%>%
+  mutate(end=ifelse(!is.na(baseline_mf),paste0(" Baseline mf prev:",round(baseline_mf,1),"%"), paste0(" Baseline nodule prev:", round(baseline_nodular,1),"%"))) %>%
+  mutate(country_of_focus=recode(country_of_focus, "Coˆte d’Ivoire"="Cote d'Ivoire")) %>%
+  mutate(end=ifelse(author%in%"Herrador et al", "74.5%", end )) %>%
+  mutate(author=ifelse(author%in%"Brosboom et al", "Borsboom et al", author))%>%
+  mutate(author1= paste0(author,"., ", year_of_publication, " (",subnational_area1,", ", country_of_focus, ")", end))%>%
+  mutate(tpos=as.numeric(tpos))%>%
+  mutate(status1=ifelse(status%in%"Ongoing transmission" & vector_control_yes_no%in%"Yes", "Ongoing transmission (with vector control)", ifelse(status%in%"Ongoing transmission" & vector_control_yes_no%in%"No", "Ongoing transmission (without vector control)", ifelse(status%in%"Close to elimination" & vector_control_yes_no%in%"Yes","Close to elimination (with vector control)", ifelse(status%in%"Close to elimination" & vector_control_yes_no%in%"No", "Close to elimination (without vector control)", ifelse(status%in%"Elimination of transmission" & vector_control_yes_no%in%"Yes", "EOT (with vector control)", ifelse(status%in%"Elimination of transmission" & vector_control_yes_no%in%"No","EOT (without vector control)", status))) ))))%>%
+ # mutate(ivm=ifelse(MDA_years<16, "10-15", ifelse(MDA_years>15 & MDA_years<21, "16-20",ifelse(MDA_years>20 & MDA_years<26, "20-25", "25-30")))) %>%
+  select(author1, status1, tpos, tneg, mf_prevalence, vector_control_yes_no)%>%
+  distinct()%>%
+  filter(!is.na(tpos))%>%
+  mutate(tpos=as.numeric(tpos),
+         tneg=as.numeric(tneg))
+
+
+
+meta_data2$status1 <- fct_relevel(meta_data2$status1, "EOT (with vector control)","EOT (without vector control)","Close to elimination (with vector control)", "Close to elimination (without vector control)", "Ongoing transmission (with vector control)", "Ongoing transmission (without vector control)")
+
+meta_data2a <- meta_data2%>%
+  filter(status1%in%c( "EOT (with vector control)", "EOT (without vector control)", "Close to elimination (with vector control)", "Close to elimination (without vector control)"))%>%
+   mutate(status1=fct_relevel(status1, "EOT (with vector control)", "EOT (without vector control)", "Close to elimination (with vector control)", "Close to elimination (without vector control)")) 
+
+  
+
+## trial 2
+mtprop <- metaprop(
+  event=tpos,
+  n=tneg,
+  studlab = author1,
+  subgroup=status1,
+  data=meta_data2a,
+  pscale = 100
+)
+
+# png(file="funnelplot_oncho_close.png", width=18, height=12,units="in", res=300)
+# funnel(mtprop)
+# dev.off()
+
+png(file="forestplot_oncho_3a_close.png", width = 16,height=18, units="in", res=300 )
+metafor::forest(mtprop, rightlabs = c("mf prevalence. (%)","[95% CI]"), 
+       leftlabs=c("Study","Positive (n)", "Sample size"), overall = F, 
+       allstudies = T,  col.by = "black",smlab="", subgroup.name = "", colgap = "1cm", pooled.totals = F, test.subgroup.random  = F, random = T,common=F, study.results = T, pooled.events = FALSE,pooled.times=FALSE,  fixed=F, text.common=F, addrow.overall=F, overall.hetstat=F
+ )
+dev.off()
+
+meta_data3 <-meta_analysis_data%>%
+  filter(!is.na(tpos))%>%
+  mutate(tpos=as.numeric(tpos))%>%
+  mutate(status2=ifelse(status%in%"Elimination of transmission", 1, 0))%>%
+  mutate(status2a=ifelse(status%in%c("Close to elimination", "Elimination of transmission"), 1,0))%>%
+  mutate(sample_size_eot=ifelse(status2==1, sample_size, NA))%>%
+  mutate(sample_size_ong=ifelse(status2==0, sample_size, NA))%>%
+  mutate(tpos_eot=ifelse(status2==1, tpos, NA))%>%
+  mutate(tpos_ong=ifelse(status2==0, tpos, NA))
+  
+
+
+reg1 <- escalc(measure="PR", ni=sample_size,
+               xi=tpos, data=meta_data3)
+reg2 <- escalc(measure="OR", bi=sample_size_eot,
+               ai=tpos_eot,ci = tpos_ong, di=sample_size_ong,data=meta_data3)
+
+reg1$number_of_years_of_vector_control<- as.numeric(reg1$number_of_years_of_vector_control)
+reg1$vec_control <- ifelse(is.na(reg1$number_of_years_of_vector_control), "No", "Yes")
+reg1$vector_species1 <- recode(reg1$vector_species1, "Simulium damnosum s.l & Simulium neavei"="Simulium neavei")
+reg1$region<- ifelse(reg1$country_of_focus%in%c("Coˆte d’Ivoire", "Ghana", "Guinea", "Guinea, Mali", "Liberia", "Mali", "Nigeria", "Senegal, Mali", "Togo"), "West Africa", ifelse(reg1$country_of_focus%in%c("Cameroon", "CAR", "Central African Republic", "Chad", "Congo", "DRC", "Equatorial Guinea"), "Central Africa", ifelse(reg1$country_of_focus%in%c("Ethiopia", "Malawi", "Sudan", "Tanzania", "Uganda"), "East Africa", reg1$country_of_focus)))
+reg1$systemic_noncomp1 <- ifelse(reg1$systemic_noncomp<5, "<5",">5" )
+reg1$trans <- ifelse(reg1$country_of_focus%in%c("Guinea, Mali", "Senegal, Mali"), "Yes", "No")
+reg1$civil_war <- ifelse(reg1$country_of_focus%in%c("DRC", "CAR", "Central African Republic", "Coˆte d’Ivoire"), "Yes", "No")
+
+reg_model <-rma(yi=yi,
+                vi=vi,
+                data=reg2 )
+                #mods=~therapeutic_coverage1*years_over80+MDA_years)
+
+png(file="funnelplot_oncho_rma_ong.png", width=18, height=12,units="in", res=300)
+funnel.rma(reg_model)
+dev.off()
+reg1$years_biannual<- recode(reg1$years_biannual, "2 (quarterly)"="2")
+reg1$years_biannual <- as.numeric(reg1$years_biannual)
+
+reg1$years_biannual1<- ifelse(is.na(reg1$years_biannual), 0, reg1$years_biannual)
+reg1$systemic_noncomp1<- ifelse(is.na(reg1$systemic_noncomp1),"<5", reg1$systemic_noncomp1 )
+reg1$region <- fct_relevel(reg1$region, "Central Africa")
+
+reg1<- reg1%>%
+  mutate(ecological_features=recode(ecological_features, "Rain-forest"="Forest", "Sudan-savanna"="Savannah"))
+#status1
+reg1$years_biannual2 <- ifelse(reg1$years_biannual1==0, "Never", "Experienced")
+reg1$years_over80a<- ifelse(reg1$years_over80<10, "<10", ">10")
+reg1$years_over80a <- ifelse(is.na(reg1$years_over80a), "<10", reg1$years_over80a)
+reg1$baseline_end <- fct_relevel(reg1$baseline_end, "Hypoendemic")
+
+reg1$co_endemicity1 <- recode(reg1$co_endemicity, "LF treatment from 2000-2012"="Lymphatic Filariasis", "LF treatment from 2002-2012"="Lymphatic Filariasis","Lymphatic filariasis"="Lymphatic Filariasis", "Mansonella perstans and Loa loa"="Loa loa", "Palsmodium falciparum-28%, entamoeba histolytica-17%, necator americanus-17%"="No", "Prevalence of skin depigmentation-3%, prevalence of rashes- 0.3%"="No", "Yes- LF in some areas (doesnt specify where)"="Lymphatic Filariasis"
+                              )
+reg1$co_endemicity1<- ifelse(is.na( reg1$co_endemicity1), "No", reg1$co_endemicity1)
+reg1$co_endemicity1 <- fct_relevel(reg1$co_endemicity1, "No")
+reg1$ecological_features<- fct_relevel(reg1$ecological_features, "Savannah")
+
+reg1$mda_years1 <- ifelse(reg1$MDA_years<14, "<14", ">14")
+reg1$mda_years1 <- fct_relevel(reg1$mda_years1,"<14", ">14" )
+reg_model1 <-rma(yi=yi,
+                vi=vi,
+                data=reg1,
+                mods=~baseline_end+mda_years1+years_over80a+systemic_noncomp1+region)
+
+odds <- data.frame()
+ci.lb <-reg_model1$ci.lb
+ci.ub <- reg_model1$ci.ub
+chr <- reg_model1$b[,1]
+odds <- data.frame(chr, ci.lb, ci.ub)
+
+odds1 <- odds%>%
+  mutate_at(vars(chr, ci.lb, ci.ub), funs(exp))
+
+odds1$names<- rownames(odds1) 
+
+odds1 <- odds1%>%
+  filter(!names%in%"intrcpt") %>%
+  mutate(names=recode(names, "baseline_endHoloendemic"="Holoendemic (ref:Hypoendemic)", "baseline_endHyperendemic"="Hyperendemic", "baseline_endMeso-endemic"="Meso-endemic", "mda_years1>14"="MDA-years>14 (ref:MDA-years<=14", "regionEast Africa"="East Africa: ref: Central Africa", "regionWest Africa"="West Africa", "systemic_noncomp1>5"="systemic_noncomp: >5", "years_over80a>10"="years_over80a<=10"  )) 
+
+odds1$names <- fct_relevel(odds1$names, "Holoendemic (ref:Hypoendemic)", "Hyperendemic", "Meso-endemic", "MDA-years>14 (ref:MDA-years<=14","East Africa: ref: Central Africa","West Africa","systemic_noncomp: >5","years_over80a<=10")
+ggplot(odds1, aes(x=names, y=chr))+
+  geom_errorbar(aes(ymin=ci.lb, ymax=ci.ub))+
+  coord_flip()+theme_bw()+geom_hline(yintercept = 1, linetype=2, color="red")+
+  labs(x="", y="")+
+  theme(text=element_text(size=16, face="bold"))
+  
+ggsave("odds_ratio1.png", width=14, height=8)
+## logistic model
+reg2 <- reg1 %>%
+  mutate(status2 = ifelse(status%in%"Elimination of transmission", "EOT", "Ongoing transmission"))
+reg_model2 <- rma(yi=yi,
+                vi=vi,
+                data=reg2,
+                mods=~status2)
+reg1a <- reg1 %>%
+  filter(status%in%c("Close to elimination", "Interruption of transmission"))%>%
+  mutate(status=fct_relevel(status, "Interruption of transmission"))
+
+res_all <- rma(yi, vi, data=reg1a )
+forest(mtprop, rightlabs = c("Prop. (%)","[95% CI]"), 
+       leftlabs=c("Study", "Total"), overall = F,
+       allstudies = F, study.results = F , test.subgroup=F, col.by = "black",smlab=""
+      )
+res.1 <- rma(yi, vi, data=reg1, subset=(status=="Interruption of transmission"))
+res.2 <- rma(yi, vi, data=reg1, subset=(status=="Close to elimination"))
+res.3 <- rma(yi, vi, data=reg1, subset=(status=="Ongoing transmission"))
+
+
+```
+
+```{r, echo=T}
+
+#logistic regression for elimination where close to elimination and ongoing transmission are grouped together
+
+elimination1 <-meta_analysis_data%>%
+  mutate(status2=ifelse(status%in%"Elimination of transmission", 1, 0))%>%
+  mutate(number_of_years_of_vector_control= as.numeric(number_of_years_of_vector_control)) %>%
+  mutate(therapeutic_coverage1a = ifelse(therapeutic_coverage1%in%c("<80%"), "<80%", ">=80%")) %>%
+  mutate(vec_control = ifelse(is.na(number_of_years_of_vector_control), "No", "Yes")) %>%
+  mutate(vector_species1 = recode(vector_species1, "Simulium damnosum s.l & Simulium neavei"="Simulium neavei", "Simuulium neavei"="Simulium neavei")) %>%
+  mutate(status2a=ifelse(status%in%c("Close to elimination", "Elimination of transmission"), 1,0))%>%
+  mutate(region = ifelse(country_of_focus%in%c("Coˆte d’Ivoire", "Ghana", "Guinea", "Guinea, Mali", "Liberia", "Mali", "Nigeria", "Senegal, Mali", "Togo", "Burkina Faso", "Eq. Guinea", "Senegal, Guinea", "Senegal", "Mali,Senegal"), "West Africa", ifelse(country_of_focus%in%c("Cameroon", "CAR", "Central African Republic", "Chad", "Congo", "DRC", "Equatorial Guinea"), "Central Africa", ifelse(country_of_focus%in%c("Ethiopia", "Malawi", "Sudan", "Tanzania", "Uganda"), "East Africa", country_of_focus)))) %>%
+  mutate(systemic_noncomp1 = ifelse(systemic_noncomp<5, "<5",">5" )) %>%
+  mutate(civil_war = ifelse(country_of_focus%in%c("DRC", "CAR", "Central African Republic", "Coˆte d’Ivoire"), "Yes", "No")) %>%
+  mutate(years_biannual= recode(years_biannual, "2 (quarterly)"="2")) %>%
+  mutate(years_biannual = as.numeric(years_biannual)) %>%
+  mutate(years_biannual1 = ifelse(is.na(years_biannual), 0, years_biannual)) %>%
+ # mutate(systemic_noncomp1 = ifelse(is.na(systemic_noncomp1),"<5", systemic_noncomp1 )) %>%
+  mutate(ecological_features=recode(ecological_features, "Rain-forest"="Forest", "Sudan-savanna"="Savannah")) %>%
+  mutate(subnational_area= recode(subnational_area, "Bafang"= "Bafang health district", "Bafang District"="Bafang health district", "Bafia health district"="Bafia Health District", "Bafia health districts"="Bafia Health District", "Bandja"="Bandja Health district", "Bandja District"="Bandja Health district", "Bangangte"="Bangangte health district", "Bangangte District"="Bangangte health district", "Bioko island"="Bioko Island", "Foumbot"="Foumbot health district", "Foumbot District"="Foumbot health district" , "Imo"=" Imo River Basin", "Kasese"="Kasese District", "Kekem"="Kekem health district", "Kekem District"="Kekem health district", "Mahenge"="Mahenge focus", "Massangam"="Massangam health district", "Meme River Basin"="Meme Drainage Basins", "Nkoranza District"="Nkoranza North district", "Ogun River System"="Ogun State", "Plateau & Nasarawa States"="Plateau Nassarawa", "River Faleme focus"="River Faleme", "Tukuyu"="Tukuyu focus","Yabassi health districts"="Yabassi health district")) 
+
+  
+
+
+
+#elimination1$region <- fct_relevel(elimination1$region, "Central Africa")
+
+
+  
+#status1
+elimination1$years_biannual2 <- ifelse(elimination1$years_biannual1==0, "Never", "Experienced")
+elimination1$years_over80a<- ifelse(elimination1$years_over80<10, "<10", ">10")
+elimination1$years_over80a <- ifelse(is.na(elimination1$years_over80a), "<10", elimination1$years_over80a)
+elimination1$baseline_end <- fct_relevel(elimination1$baseline_end, "Hypoendemic")
+
+elimination1$co_endemicity1 <- recode(elimination1$co_endemicity, "LF treatment from 2000-2012"="Lymphatic Filariasis", "LF treatment from 2002-2012"="Lymphatic Filariasis","Lymphatic filariasis"="Lymphatic Filariasis", "Mansonella perstans and Loa loa"="Loa loa", "Palsmodium falciparum-28%, entamoeba histolytica-17%, necator americanus-17%"="No", "Prevalence of skin depigmentation-3%, prevalence of rashes- 0.3%"="No", "Yes- LF in some areas (doesnt specify where)"="Lymphatic Filariasis", "Forty eight cases tested (8.8%) were characterised as M. perstans and four cases (0.7%) corresponded to L. loa"="Loa loa"
+                              )
+elimination1$co_endemicity1<- ifelse(is.na( elimination1$co_endemicity1), "No", elimination1$co_endemicity1)
+elimination1$co_endemicity1 <- fct_relevel(elimination1$co_endemicity1, "No")
+elimination1$ecological_features<- fct_relevel(elimination1$ecological_features, "Savannah")
+
+elimination1$mda_years1 <- ifelse(elimination1$MDA_years<15, "<15", ifelse(elimination1$MDA_years>14 &elimination1$MDA_years<20, "15-19", ">19"))
+
+elimination1$mda_years1 <- fct_relevel(elimination1$mda_years1,"<15","15-19",  ">19" )
+elimination1$mda_years2 <- ifelse(elimination1$MDA_years<14, "<14", ">=14")
+elimination1$mda_years2 <- fct_relevel(elimination1$mda_years2,"<14",">=14" )
+elimination1$years_over80bb <- ifelse(is.na(elimination1$years_over80) & elimination1$therapeutic_coverage1a%in%"<80%", "No",ifelse(is.na(elimination1$years_over80) & elimination1$therapeutic_coverage1a%in%">=80%","Yes (<10)",ifelse(elimination1$years_over80<10,"Yes (<10)", "Yes (>=10)")))
+elimination1$years_over80b <- ifelse(is.na(elimination1$years_over80), "No",ifelse(elimination1$years_over80<10,"Yes (<10)", "Yes (>=10)"))
+elimination1$years_over80c <- ifelse(elimination1$years_over80<10,"Yes (<10)", "Yes (>=10)")
+elimination1$years_biannual_cat <- ifelse(elimination1$years_biannual<2, "1 year",ifelse(is.na(elimination1$years_biannual), "Not reported", ">1 year"))
+elimination1$years_biannual_cat <- fct_relevel(elimination1$years_biannual_cat, "Not reported", "1 year", ">1 year")
+elimination1$id <- seq(1, 231, by=1)
+
+elimination1 <- elimination1 %>%
+  group_by(id) %>%
+  mutate(rounds_MDA=sum(MDA_years,years_biannual, na.rm=T)) %>%
+  mutate(rounds_MDA=ifelse(rounds_MDA==0, NA, rounds_MDA))
+
+elimination1$rounds_MDA1 <- ifelse(elimination1$rounds_MDA<15, "<15", ifelse(elimination1$rounds_MDA>14 &elimination1$rounds_MDA<20, "15-19", ">19"))
+
+
+
+
+elimination1$rounds_MDA1 <- fct_relevel(elimination1$rounds_MDA1, "<15", "15-19", ">19")
+#years_over80b+years_biannual_cat+vector_species1+baseline_end+vec_control+mda_years1
+
+elimination_model <- glmer(status2a~mda_years1+(1|subnational_area), family="binomial", data=elimination1)
+
+elimination_model1 <- glm(status2 ~ocp, family="binomial", data=elimination1)
+
+elimination_model2 <- glmer(status2 ~ years_over80b+years_biannual_cat+vector_species1+baseline_end+ocp+mda_years1+co_endemicity1+(1|subnational_area), family="binomial", data=elimination1)
+
+
+
+
+
+elimination1$years_biannual2 <- fct_relevel(elimination1$years_biannual2, "Experienced", "Never")
+
+library(lme4)
+elimination_model2a<- glmer(status2 ~ years_over80b+vec_control+baseline_end+mda_years1+years_biannual2+(1|subnational_area), family="binomial", data=elimination1)
+
+library(broom.mixed)
+odds_multi1 <- tidy(elimination_model2a,conf.int=TRUE, effects="fixed") %>%
+  filter(!term%in%"(Intercept)") %>%
+  mutate(term=recode(term, "years_over80bYes (<10)"="Number of years with reported continuous \ntherapeutic treatment of at least 80% \nof eligibles for <10 years \n(ref: None)", "years_over80bYes (>=10)"="Number of years with reported continuous \ntherapeutic treatment of at least 80% \nof eligibles for >=10 years \n(ref: None)", "years_biannual2Never"="Never had biannual treatment \nprogramme (Ref: Ever had)", "baseline_endHoloendemic"="Baseline endemicity: Holoendemic \n(Ref:Hypoendemic)", "baseline_endHyperendemic"="Baseline endemicity: Hyperendemic \n(Ref:Hypoendemic)", "baseline_endMeso-endemic"="Baseline endemicity: Meso-endemic \n(Ref:Hypoendemic)", "ocpOCP"="Overarching programme:OCP (Ref:APOC)", "mda_years115-19"="Years of MDA: 15-19 (Ref:<15)", "mda_years1>19"="Years of MDA: >19 (Ref:<15)", "co_endemicity1Lymphatic Filariasis"="Co-endemicity: Lymphatic Filariasis (Ref: None)", "vec_controlYes"="Vector Control: Yes \n(Ref: No)","years_biannual1"="Years of biannual treatment (count)", "vector_species1Simulium neavei"="Vector species: S. neavei \n(Ref: S. damnosum complex)")) %>%
+  mutate(name="Elimination of transmission vs \n Close to elimination/ ongoing transmission")
+## SECOND MODEL
+elimination_model2b<- glmer(status2a ~ years_over80b+vec_control+baseline_end+mda_years1+vec_control+years_biannual2+(1|subnational_area), family="binomial", data=elimination1)
+
+
+library(broom.mixed)
+odds_multi2 <- tidy(elimination_model2b,conf.int=TRUE, effects="fixed") %>%
+  filter(!term%in%"(Intercept)") %>%
+  mutate(term=recode(term, "years_over80bYes (<10)"="Number of years with reported continuous \ntherapeutic treatment of at least 80% \nof eligibles for <10 years \n(ref: None)", "years_over80bYes (>=10)"="Number of years with reported continuous \ntherapeutic treatment of at least 80% \nof eligibles for >=10 years \n(ref: None)", "years_biannual2Never"="Never had biannual treatment \nprogramme (Ref: Ever had)", "baseline_endHoloendemic"="Baseline endemicity: Holoendemic \n(Ref:Hypoendemic)", "baseline_endHyperendemic"="Baseline endemicity: Hyperendemic \n(Ref:Hypoendemic)", "baseline_endMeso-endemic"="Baseline endemicity: Meso-endemic \n(Ref:Hypoendemic)", "ocpOCP"="Overarching programme:OCP (Ref:APOC)", "mda_years115-19"="Years of MDA: 15-19 (Ref:<15)", "mda_years1>19"="Years of MDA: >19 (Ref:<15)", "co_endemicity1Lymphatic Filariasis"="Co-endemicity: Lymphatic Filariasis (Ref: None)","vec_controlYes"="Vector Control: Yes \n(Ref: No)", "years_biannual1"="Years of biannual treatment (count)", "vector_species1Simulium neavei"="Vector species: S. neavei \n(Ref: S. damnosum complex)"))%>%
+  mutate(name="Elimination of transmission /Close to elimination vs\n ongoing transmission") %>%
+  mutate(conf.low=round(conf.low, 4)) %>%
+  mutate(conf.high=round(conf.high, 4)) %>%
+  mutate(conf.high=ifelse(conf.high==-0.0622, 2.0622,conf.high))
+
+odds_multi <- rbind(odds_multi1, odds_multi2)
+
+odds_multi$term <- fct_relevel(odds_multi$term,
+ "Baseline endemicity: Meso-endemic \n(Ref:Hypoendemic)","Baseline endemicity: Hyperendemic \n(Ref:Hypoendemic)","Baseline endemicity: Holoendemic \n(Ref:Hypoendemic)","Vector Control: Yes \n(Ref: No)","Years of MDA: 15-19 (Ref:<15)","Years of MDA: >19 (Ref:<15)","Number of years with reported continuous \ntherapeutic treatment of at least 80% \nof eligibles for >=10 years \n(ref: None)","Number of years with reported continuous \ntherapeutic treatment of at least 80% \nof eligibles for <10 years \n(ref: None)","Never had biannual treatment \nprogramme (Ref: Ever had)"                )
+
+odds_multi$name <- fct_relevel(odds_multi$name, "Elimination of transmission vs \n Close to elimination/ ongoing transmission", "Elimination of transmission /Close to elimination vs\n ongoing transmission")
+ggplot(odds_multi, aes(x=term, y=estimate))+facet_grid(.~name, scales = "free_x")+
+  geom_errorbar(aes(ymin=conf.low, ymax=conf.high), size=1)+
+  coord_flip()+theme_bw()+geom_hline(yintercept = 0, linetype=2, color="red", size=1)+geom_point(size=4)+
+  labs(x="", y="Log odds", color="")+
+  theme(text=element_text(size=16, face="bold"))#+scale_color_brewer(palette="Set1")
+  
+ggsave("log_odds_multivariate_final2.png", width=16, height=8)
+
+
+```
+
+
